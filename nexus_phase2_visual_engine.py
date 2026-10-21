@@ -133,13 +133,14 @@ def composite_character_on_background(bg_path, char_png_path, output_composite_p
     return output_composite_path
 
 # ==========================================
-# DEPT 5E: 8-10s IMAGE-TO-VIDEO GENERATOR (FREE BRIDGE + FALLBACK)
+# DEPT 5E: 8-10s IMAGE-TO-VIDEO GENERATOR (ADVANCED BRIDGE + FALLBACK)
 # ==========================================
 def generate_scene_video_clip(composite_img_path, action_prompt, duration_sec, output_clip_path):
     """
     Attempts Free Cloud I2V Bridge first (Hugging Face Spaces).
     If queue is full/busy, smoothly renders high-FPS 2.5D motion video via FFmpeg so server never fails.
     """
+    os.makedirs(os.path.dirname(output_clip_path), exist_ok=True)
     print(f"\n[VIDEO GENERATOR] Creating {duration_sec}s video clip for: {output_clip_path}")
 
     # 1. Try Free Hugging Face I2V Bridge
@@ -157,7 +158,6 @@ def generate_scene_video_clip(composite_img_path, action_prompt, duration_sec, o
                 api_name="/predict"
             )
             if isinstance(result, str) and os.path.exists(result):
-                # Stretch/trim clip to exact 8-10s scene duration
                 cmd = [
                     "ffmpeg", "-y", "-stream_loop", "-1", "-i", result,
                     "-t", str(duration_sec), "-c:v", "libx264", "-pix_fmt", "yuv420p",
@@ -167,9 +167,9 @@ def generate_scene_video_clip(composite_img_path, action_prompt, duration_sec, o
                 print(f"  -> [SUCCESS] Cloud I2V clip generated via {space_id}!")
                 return
         except Exception as e:
-            print(f"  -> Bridge {space_id} busy or queued. Switching to local render engine...")
+            print(f"  -> Bridge {space_id} busy or queued. Switching to advanced local motion engine...")
 
-    # 2. Guaranteed Local 8-10s Smooth Motion Engine (Zero Crash Guarantee)
+    # 2. Advanced Local 8-10s Smooth Motion Engine (Zero Crash Guarantee)
     img = Image.open(composite_img_path)
     w, h = img.size
     fps = 25
@@ -190,7 +190,6 @@ def generate_scene_video_clip(composite_img_path, action_prompt, duration_sec, o
 
 # ==========================================
 # DEPARTMENT 6: 5 SPECIALIST VIDEO EDITING AGENTS
-# (1. Animation/Motion, 2. Color Grading, 3. SFX, 4. BGM, 5. Final Cut)
 # ==========================================
 def editor_agent_2_color_grading(input_clip, style_desc, output_clip):
     """Editor Agent 2: Applies cinematic color grading based on scene mood."""
@@ -198,7 +197,6 @@ def editor_agent_2_color_grading(input_clip, style_desc, output_clip):
     if "dark" in style or "suspense" in style or "horror" in style:
         vf = "eq=contrast=1.18:brightness=-0.04:saturation=0.85,colorbalance=bs=0.15:bm=0.1"
     else:
-        # Bright vibrant 3D cartoon look
         vf = "eq=contrast=1.12:brightness=0.02:saturation=1.30,unsharp=5:5:0.8:5:5:0.0"
 
     cmd = [
@@ -209,8 +207,8 @@ def editor_agent_2_color_grading(input_clip, style_desc, output_clip):
 
 def editor_agent_3_and_4_sfx_bgm_generator(output_bgm_path, total_duration):
     """Editor Agents 3 & 4: Generates ambient suspense/story background music & SFX bed."""
+    os.makedirs(os.path.dirname(output_bgm_path), exist_ok=True)
     print("\n[DEPT 6 - AUDIO EDITORS] Generating Background Music (BGM) & SFX Audio Bed...")
-    # Synthesizes a clean cinematic ambient pad using FFmpeg lavfi so it requires zero external paid files
     cmd = [
         "ffmpeg", "-y", "-f", "lavfi",
         "-i", f"aevalsrc='0.08*sin(2*PI*110*t)+0.05*sin(2*PI*165*t)+0.03*sin(2*PI*220*t)':s=44100:d={total_duration}",
@@ -220,21 +218,25 @@ def editor_agent_3_and_4_sfx_bgm_generator(output_bgm_path, total_duration):
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def editor_agent_1_and_5_master_assembly(graded_clips, voiceover_path, bgm_path, final_output_path):
-    """Editor Agents 1 & 5: Joins all 8-10s scenes, mixes Voiceover + BGM + SFX, and exports Final HD MP4."""
-    print("\n[DEPT 6 - MASTER EDITOR] Concatenating 8-10s Scenes & Mixing Multi-Track Audio...")
-    concat_list_file = "output/scenes/concat_list.txt"
+    """Editor Agents 1 & 5: Joins all scenes, mixes Voiceover + BGM + SFX, and exports Final HD MP4."""
+    os.makedirs(os.path.dirname(final_output_path), exist_ok=True)
+    print("\n[DEPT 6 - MASTER EDITOR] Concatenating Scenes & Mixing Multi-Track Audio...")
+    
+    scenes_dir = "output/scenes"
+    os.makedirs(scenes_dir, exist_ok=True)
+    concat_list_file = os.path.join(scenes_dir, "concat_list.txt")
+    
     with open(concat_list_file, "w", encoding="utf-8") as f:
         for clip in graded_clips:
             abs_p = os.path.abspath(clip)
             f.write(f"file '{abs_p}'\n")
 
-    merged_visual_path = "output/scenes/merged_visuals.mp4"
+    merged_visual_path = os.path.join(scenes_dir, "merged_visuals.mp4")
     subprocess.run([
         "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list_file,
         "-c", "copy", merged_visual_path
     ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    # Mix Master Voiceover (100% volume) + BGM/SFX Bed (20% ducked volume)
     cmd_final = [
         "ffmpeg", "-y",
         "-i", merged_visual_path,
@@ -257,7 +259,6 @@ def generate_viral_thumbnail(thumb_blueprint, output_thumb_path):
     prompt = f"{thumb_blueprint['visual_prompt']}, ultra vibrant YouTube thumbnail, shocked expression, high contrast, 8k"
     download_ai_image(prompt, output_thumb_path, width=1280, height=720, seed=777888)
 
-    # Add High-Contrast Border for CTR boost
     img = Image.open(output_thumb_path).convert("RGB")
     draw = ImageDraw.Draw(img)
     draw.rectangle([0, 0, img.width - 1, img.height - 1], outline=(255, 230, 0), width=14)
@@ -272,13 +273,13 @@ if __name__ == "__main__":
     prod_plan = blueprint["production_plan"]
     is_shorts = os.environ.get("VIDEO_FORMAT", "Shorts").lower() == "shorts"
 
-    # 1. Build Transparent Character PNG Wardrobe (Same Face, Multiple Outfits)
+    # 1. Build Transparent Character PNG Wardrobe
     build_character_png_wardrobe(prod_plan["master_character_png_bank"])
 
     # 2. Build Recurring Background Bank
     build_background_bank(prod_plan["background_bank"], is_shorts=is_shorts)
 
-    # 3. Process Each 8-10 Second Scene
+    # 3. Process Each Scene
     graded_scene_clips = []
     total_duration = 0
 
@@ -293,27 +294,22 @@ if __name__ == "__main__":
         composite_frame = f"output/scenes/scene_{s_num}_composite.jpg"
         raw_clip = f"output/scenes/scene_{s_num}_raw.mp4"
         graded_clip = f"output/scenes/scene_{s_num}_graded.mp4"
+        os.makedirs("output/scenes", exist_ok=True)
 
-        # Fallback to first available asset if path differs slightly
         if not os.path.exists(bg_img) and prod_plan["background_bank"]:
             bg_img = prod_plan["background_bank"][0]["bg_filename"]
         if not os.path.exists(char_png) and prod_plan["master_character_png_bank"]:
             char_png = prod_plan["master_character_png_bank"][0]["png_filename"]
 
-        # Place Character PNG on Background
         composite_character_on_background(bg_img, char_png, composite_frame, is_shorts=is_shorts)
-
-        # Generate 8-10s Video Clip
         generate_scene_video_clip(composite_frame, scene["image_to_video_action_prompt"], dur, raw_clip)
-
-        # Apply Editor Agent 2 Color Grading
         editor_agent_2_color_grading(raw_clip, scene.get("color_grading_style", "Vibrant"), graded_clip)
         graded_scene_clips.append(graded_clip)
 
-    # 4. Run 5 Editing Agents to Assemble Final Video with Voiceover, SFX & BGM
+    # 4. Assemble Final Video with Voiceover & BGM
     bgm_file = "output/scenes/ambient_bgm.wav"
     editor_agent_3_and_4_sfx_bgm_generator(bgm_file, max(15, total_duration))
     editor_agent_1_and_5_master_assembly(graded_scene_clips, VOICEOVER_PATH, bgm_file, FINAL_VIDEO_PATH)
 
-    # 5. Generate Locked Viral Thumbnail
+    # 5. Generate Viral Thumbnail
     generate_viral_thumbnail(blueprint["seo_and_thumbnail"]["thumbnail_blueprint"], FINAL_THUMBNAIL_PATH)
