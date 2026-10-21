@@ -16,7 +16,7 @@ USER_CATEGORY = os.environ.get("USER_CATEGORY", "3D Cartoon Moral & Suspense Sto
 VIDEO_FORMAT = os.environ.get("VIDEO_FORMAT", "Shorts")  # Options: "Shorts" or "Long"
 TARGET_TOPIC = os.environ.get("TARGET_TOPIC", "A poor boy finds a magical futuristic watch")
 
-# Initialize Gemini Client
+# Initialize Gemini Client (Model untouched as requested)
 client = genai.Client(api_key=GEMINI_API_KEY)
 MODEL_ID = "gemini-3.5-flash-lite"
 
@@ -82,7 +82,6 @@ def run_department_1_topic_check(category, video_format, topic):
 
 # ==========================================
 # DEPARTMENT 2: 4 DEEP RESEARCH & SPY AGENTS
-# (Small Channels, Big Channels, IG Trends, Channel Doctor)
 # ==========================================
 def fetch_youtube_competitors(query):
     """Fetches real YouTube video data and channel subscriber counts."""
@@ -132,7 +131,7 @@ def run_department_2_spy_squad(category, improved_topic):
     You are a Research Squad of 4 Spy Agents:
     1. Small Channel Spy: Finds how low-subscriber channels get massive views.
     2. Big Channel Mastermind: Extracts quality & storytelling secrets from big channels.
-    3. Instagram & Cross-Platform Trend Spy: Identifies current viral audio, pacing, and visual hooks on Instagram Reels (both AI and non-AI).
+    3. Instagram & Cross-Platform Trend Spy: Identifies current viral audio, pacing, and visual hooks.
     4. Channel Doctor Agent: Lists exact mistakes to avoid so the video doesn't flop.
     """
     prompt = f"""
@@ -181,7 +180,6 @@ def run_department_3_script_and_6_judges(topic_data, spy_data, video_format):
         """
         draft = call_gemini_json(writer_sys, writer_prompt)
 
-        # Now 6 Judges inspect the script
         judges_sys = """
         You are the 6 Strict Script Judges:
         Judge 1: 3-Second Hook Tester
@@ -223,17 +221,17 @@ def run_department_3_script_and_6_judges(topic_data, spy_data, video_format):
     return draft
 
 # ==========================================
-# DEPARTMENT 4 & 5: 8-10s SCENE SLICER + SMART PNG WARDROBE PLANNER
+# DEPARTMENT 4 & 5: 8-10s SCENE SLICER + WARDROBE PLANNER
 # ==========================================
 def run_department_4_and_5_scene_and_png_planner(approved_script, category):
     print("\n[DEPT 4 & 5] Slicing Script into 8-10s Chunks & Locking Main Character PNG Wardrobe...")
     sys_prompt = """
     You are a team of 4 Scene Slicer Agents and 4 Character/Background Consistency Agents.
     Rules:
-    1. Identify ONLY the most frequently used Main Character(s) and create a 'master_character_png_bank' for them.
-    2. If a main character changes clothes in the story, keep the EXACT SAME face/body description and create a second PNG entry for the new outfit (e.g., 'raju_default.png' and 'raju_suit.png'). Both PNGs must be saved and referenced accurately.
+    1. Identify main character(s) and create a 'master_character_png_bank' for them.
+    2. If a main character changes clothes, keep the exact same face/body description and create a second PNG entry.
     3. Identify recurring backgrounds and list them in 'background_bank'.
-    4. Slice the story into 8 to 10-second scenes. Each scene must specify which Character PNG file, which Background file, Camera Angle, Color Grading mood, and Sound Effect (SFX) to use.
+    4. Slice the story into 8 to 10-second scenes. Each scene must specify Character PNG file, Background file, Camera Angle, Color Grading mood, and Sound Effect (SFX).
     """
     prompt = f"""
     Visual Style / Category: {category}
@@ -285,7 +283,7 @@ def run_department_7_and_8_seo_and_thumbnail(topic_data, approved_script):
     print("\n[DEPT 7 & 8] Running 4 Title/SEO Agents & 4 Thumbnail Judge Agents...")
     sys_prompt = """
     You are 4 SEO Agents and 4 Thumbnail Viral Judge Agents.
-    Generate 5 titles, test them, and lock the #1 highest-CTR title, description, tags, and the #1 viral thumbnail design.
+    Generate titles, test them, and lock the #1 highest-CTR title, description, tags, and viral thumbnail design.
     """
     prompt = f"""
     Topic: {topic_data['improved_viral_topic']}
@@ -310,11 +308,12 @@ def run_department_7_and_8_seo_and_thumbnail(topic_data, approved_script):
     return seo_thumb
 
 # ==========================================
-# AUDIO ENGINE: FIXED CONSISTENT HINDI VOICEOVER
+# AUDIO ENGINE: REALISTIC HINDI VOICEOVER
 # ==========================================
 async def generate_locked_voiceover(full_script_text, output_path="output/master_voiceover.mp3"):
-    print("\n[AUDIO ENGINE] Generating 100% Consistent Hindi Voiceover...")
-    communicate = edge_tts.Communicate(full_script_text, "hi-IN-MadhurNeural", rate="+5%")
+    print("\n[AUDIO ENGINE] Generating Realistic Neural Hindi Voiceover...")
+    # Upgraded voice to 'hi-IN-SwaraNeural' for natural and expressive human-like delivery
+    communicate = edge_tts.Communicate(full_script_text, "hi-IN-SwaraNeural", rate="+3%")
     await communicate.save(output_path)
     print(f"[AUDIO ENGINE] Master Voiceover saved at: {output_path}")
 
@@ -324,22 +323,30 @@ async def generate_locked_voiceover(full_script_text, output_path="output/master
 if __name__ == "__main__":
     setup_directories()
 
-    # 1. Niche & Topic Viability (4 Agents)
+    # 1. Niche & Topic Viability
     topic_report = run_department_1_topic_check(USER_CATEGORY, VIDEO_FORMAT, TARGET_TOPIC)
 
-    # 2. Spy Research Squad (4 Agents: Small/Big Channels + IG Trends)
+    # 2. Spy Research Squad
     spy_report = run_department_2_spy_squad(USER_CATEGORY, topic_report["improved_viral_topic"])
 
     # 3. Writer + 6 Judges Loop
     final_script = run_department_3_script_and_6_judges(topic_report, spy_report, VIDEO_FORMAT)
 
-    # 4 & 5. 8-10s Scene Slicer + Smart Character PNG Wardrobe Bank
+    # Save human-readable script text file for easy reading
+    os.makedirs("output", exist_ok=True)
+    with open("output/master_script.txt", "w", encoding="utf-8") as script_file:
+        script_file.write(f"TITLE/TOPIC: {topic_report['improved_viral_topic']}\n\n")
+        script_file.write(f"HOOK:\n{final_script['hook_first_3_sec']}\n\n")
+        script_file.write(f"FULL SPOKEN SCRIPT (HINDI):\n{final_script['full_spoken_script_hindi']}\n")
+    print("[SYSTEM] Human-readable script saved to output/master_script.txt")
+
+    # 4 & 5. Scene Slicer & Character Wardrobe
     production_plan = run_department_4_and_5_scene_and_png_planner(final_script, USER_CATEGORY)
 
-    # 7 & 8. 4 Title/SEO Agents + 4 Thumbnail Judges
+    # 7 & 8. SEO & Thumbnail
     seo_and_thumbnail = run_department_7_and_8_seo_and_thumbnail(topic_report, final_script)
 
-    # Combine Everything into Master Blueprint JSON for Phase 2 Video Engine
+    # Combine into Master Blueprint JSON
     master_blueprint = {
         "topic_analysis": topic_report,
         "spy_research": spy_report,
@@ -352,5 +359,5 @@ if __name__ == "__main__":
         json.dump(master_blueprint, f, ensure_ascii=False, indent=4)
     print("\n[SUCCESS] Master Production Blueprint saved to output/master_production_blueprint.json")
 
-    # Generate Locked Voiceover Audio
+    # Generate Realistic Voiceover Audio
     asyncio.run(generate_locked_voiceover(final_script["full_spoken_script_hindi"]))
