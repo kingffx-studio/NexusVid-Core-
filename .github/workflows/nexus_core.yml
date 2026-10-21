@@ -1,0 +1,57 @@
+name: NexusVid-Core Automation Engine
+
+on:
+  # Run automatically every day at 9:00 AM IST
+  schedule:
+    - cron: '30 3 * * *'
+
+  # Allow manual trigger from GitHub Mobile / APK / Browser
+  workflow_dispatch:
+    inputs:
+      user_category:
+        description: 'Video Category (e.g., 3D Cartoon Story, Horror Facts)'
+        required: true
+        default: '3D Cartoon Moral & Suspense Story'
+      video_format:
+        description: 'Format: Shorts or Long'
+        required: true
+        default: 'Shorts'
+      target_topic:
+        description: 'Video Topic Idea'
+        required: true
+        default: 'A poor village boy discovers a talking golden robot'
+
+jobs:
+  run_nexus_brain:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout NexusVid-Core Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11 & FFmpeg
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install System & Python Dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install -r requirements.txt
+
+      - name: Execute Phase 1 Multi-Agent Brain & Voice Engine
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          USER_CATEGORY: ${{ github.event.inputs.user_category || '3D Cartoon Moral & Suspense Story' }}
+          VIDEO_FORMAT: ${{ github.event.inputs.video_format || 'Shorts' }}
+          TARGET_TOPIC: ${{ github.event.inputs.target_topic || 'A poor village boy discovers a talking golden robot' }}
+        run: python nexus_phase1_brain.py
+
+      - name: Upload Master Blueprint & Audio Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-phase1-output
+          path: |
+            output/master_production_blueprint.json
+            output/master_voiceover.mp3
