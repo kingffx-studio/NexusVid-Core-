@@ -1,8 +1,12 @@
-google-genai
+google-generativeai
 google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
 edge-tts
 moviepy
 requests
 pillow
 rembg
+onnxruntime
 gradio_client
