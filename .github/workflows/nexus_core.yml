@@ -1,15 +1,10 @@
 name: NexusVid-Core Automation Engine
 
 on:
-  # Run automatically every day at 9:00 AM IST
-  schedule:
-    - cron: '30 3 * * *'
-
-  # Allow manual trigger from GitHub Mobile / APK / Browser
   workflow_dispatch:
     inputs:
       user_category:
-        description: 'Video Category (e.g., 3D Cartoon Story, Horror Facts)'
+        description: 'Video Category (e.g., 3D Cartoon Moral & Suspense Story)'
         required: true
         default: '3D Cartoon Moral & Suspense Story'
       video_format:
@@ -22,36 +17,48 @@ on:
         default: 'A poor village boy discovers a talking golden robot'
 
 jobs:
-  run_nexus_brain:
+  run_nexus_pipeline:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout NexusVid-Core Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11 & FFmpeg
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install System & Python Dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libasound2-dev
+          pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Execute Phase 1 Multi-Agent Brain & Voice Engine
+      - name: Execute Phase 1 (Brain, Script & Voice Engine)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-          USER_CATEGORY: ${{ github.event.inputs.user_category || '3D Cartoon Moral & Suspense Story' }}
-          VIDEO_FORMAT: ${{ github.event.inputs.video_format || 'Shorts' }}
-          TARGET_TOPIC: ${{ github.event.inputs.target_topic || 'A poor village boy discovers a talking golden robot' }}
-        run: python nexus_phase1_brain.py
+          USER_CATEGORY: ${{ github.event.inputs.user_category }}
+          VIDEO_FORMAT: ${{ github.event.inputs.video_format }}
+          TARGET_TOPIC: ${{ github.event.inputs.target_topic }}
+        run: |
+          python nexus_phase1_brain.py
 
-      - name: Upload Master Blueprint & Audio Artifact
+      - name: Execute Phase 2 (Visual Engine, Video Generation & Editing)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VIDEO_FORMAT: ${{ github.event.inputs.video_format }}
+        run: |
+          python nexus_phase2_visual_engine.py
+
+      - name: Upload Final Video & Thumbnail Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-phase1-output
+          name: nexus-final-output
           path: |
+            output/final/nexus_final_video.mp4
+            output/final/nexus_thumbnail.jpg
             output/master_production_blueprint.json
             output/master_voiceover.mp3
