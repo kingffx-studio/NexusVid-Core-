@@ -18,7 +18,7 @@ TARGET_TOPIC = os.environ.get("TARGET_TOPIC", "A poor boy finds a magical futuri
 
 # Initialize Gemini Client
 client = genai.Client(api_key=GEMINI_API_KEY)
-MODEL_ID = "gemini-1.5-flash"
+MODEL_ID = "gemini-3.5-flash-lite"
 
 # ==========================================
 # STEP 0: AUTO-CREATE STORAGE FOLDERS (GODOWN)
