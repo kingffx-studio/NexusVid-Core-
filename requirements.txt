@@ -1,0 +1,8 @@
+google-genai
+google-api-python-client
+edge-tts
+moviepy
+requests
+pillow
+rembg
+gradio_client
